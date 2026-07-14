@@ -1,642 +1,385 @@
+
+
 """
-Women Safety AI - Main Application Pipeline
+Community Safety AI Application
 
-This module is the entry point of the surveillance system.
-
-It integrates all AI components:
-
-    - Camera Input
-    - Person Detection (YOLO)
-    - Person Tracking (ByteTrack)
-    - Trajectory Logging
-    - Behavior Analysis
-    - Risk Assessment
-    - Incident Classification
-    - Report Generation
-    - Alert Management
-    - Event Logging
-
-
-System Pipeline:
-
-
-Camera
-
-   ↓
-
-YOLO Person Detection
-
-   ↓
-
-ByteTrack Tracking
-
-   ↓
-
-Trajectory Logging
-
-   ↓
-
-Behavior Analysis
-
-   ↓
-
-Risk Scoring
-
-   ↓
-
-Incident Classification
-
-   ↓
-
-AI Report Generation
-
-   ↓
-
-Alert System
-
-
+This is the main application entry point for the
+Real-Time Intelligent Surveillance System for Women Safety.
 
 Purpose:
 
-    Continuously analyze live video frames and
-    detect potentially dangerous situations.
+    - Capture live video from camera.
+    - Detect people using YOLO.
+    - Track individuals using ByteTrack.
+    - Analyze behavior patterns.
+    - Calculate risk score.
+    - Generate incident reports.
+    - Log detected events.
+    - Save movement trajectories.
+    - Trigger alerts for high-risk situations.
+    - Display real-time surveillance results.
+
+System Pipeline:
+
+Camera Feed
+      |
+      ↓
+Person Detection (YOLO)
+      |
+      ↓
+Multi-Object Tracking (ByteTrack)
+      |
+      ↓
+Trajectory Logging
+      |
+      ↓
+Behavior Analysis
+      |
+      ↓
+Risk Scoring
+      |
+      ↓
+Risk Classification
+      |
+      ↓
+Event Logging
+      |
+      ↓
+LLM Report Generation
+      |
+      ↓
+Alert Management
+      |
+      ↓
+Live Dashboard Display
 
 
+Imported Components:
 
-Input:
+core.camera.Camera
+    Handles video capture.
 
-    Live camera stream
+core.detector.PersonDetector
+    Detects people in video frames.
+
+core.tracker.PersonTracker
+    Tracks detected individuals across frames.
+
+behavior.analyzer.BehaviorAnalyzer
+    Detects suspicious behaviors from movement patterns.
+
+risk.scorer.RiskScorer
+    Calculates overall risk score.
+
+risk.classifier.IncidentClassifier
+    Converts score into risk level.
+
+utils.event_logger.EventLogger
+    Stores surveillance events.
+
+utils.trajectory_logger.TrajectoryLogger
+    Records movement trajectories.
+
+explain.llm_report.ReportGenerator
+    Generates human-readable incident reports.
+
+alert.manager.AlertManager
+    Triggers alerts and stores evidence.
 
 
-Output:
+Detected Risk Levels:
 
-    - Annotated video feed
+LOW
+    Normal activity.
+
+MEDIUM
+    Potentially suspicious activity.
+
+HIGH
+    High-risk activity requiring attention.
+
+CRITICAL
+    Immediate intervention required.
+
+
+Generated Outputs:
+
+Event Logs:
+
+    data/logs/events.jsonl
+
+Trajectory Files:
+
+    data/trajectories/
+
+Alert Images:
+
+    data/alerts/
+
+
+Displayed Information:
+
+    - Bounding boxes
+    - Person IDs
+    - Risk score
     - Risk level
     - Detected events
-    - Incident reports
-    - Saved alerts
-    - Movement trajectories
+    - Real-time camera feed
 
 
+Exit Condition:
 
+Press:
+
+    
+
+to stop surveillance and save trajectories.
 """
-
-
-
 print("APP STARTED")
-
-
 
 import cv2
 
-# Import System Components
-
-
-
 from utils.event_logger import EventLogger
-
 from utils.trajectory_logger import TrajectoryLogger
 
-
-
 from core.camera import Camera
-
 from core.detector import PersonDetector
-
 from core.tracker import PersonTracker
-
-
 
 from behavior.analyzer import BehaviorAnalyzer
 
-
-
 from risk.scorer import RiskScorer
-
 from risk.classifier import IncidentClassifier
 
-
-
 from explain.llm_report import ReportGenerator
-
 from alert.manager import AlertManager
 
 
 
-
-
-# -----------------------------
-# Initialize Components
-# -----------------------------
-
-
-# Camera input
-
 camera = Camera(0)
-
-
-
-# YOLO person detector
 
 detector = PersonDetector()
 
-
-
-# ByteTrack object tracker
-
 tracker = PersonTracker()
-
-
-
-# Stores movement paths
 
 trajectory_logger = TrajectoryLogger()
 
-
-
-# Detects suspicious behaviors
-
 behavior = BehaviorAnalyzer()
-
-
-
-# Calculates numerical risk score
 
 risk_engine = RiskScorer()
 
-
-
-# Converts score into incident level
-
 classifier = IncidentClassifier()
-
-
-
-# Generates human-readable report
 
 reporter = ReportGenerator()
 
-
-
-# Sends alerts
-
 alerter = AlertManager()
-
-
-
-# Stores events
 
 logger = EventLogger()
 
-
-
-
-
-# Prevent repeated printing
-# of identical reports
-
 last_report = None
-
-
 
 frame_count = 0
 
 
-
-
-
-# =================================================
-# Main Real-Time Surveillance Loop
-# =================================================
+# Main Loop
 
 
 while True:
 
-
-
-    # -----------------------------------------
-    # Capture Frame
-    # -----------------------------------------
-
-
     ret, frame = camera.read()
-
-
 
     if not ret:
 
-
-        print(
-
-            "Failed to read camera"
-
-        )
-
+        print("Failed to read camera")
 
         break
-
-
 
     frame_count += 1
 
-
-
-
-
-    # -----------------------------------------
-    # Person Detection
-    # -----------------------------------------
-    #
-    # YOLO identifies persons present
-    # in the current frame.
-    #
-    # Output:
-    #
-    # Bounding boxes and confidence scores
-    #
-    # -----------------------------------------
-
+  
+    # YOLO Detection
+   
 
     detections = detector.detect(frame)
 
-
-
-
-
-    # Draw detected persons
+    # Draw detections
 
     for det in detections:
 
-
-
         x1, y1, x2, y2 = map(
-
             int,
-
             det["bbox"]
-
         )
-
-
 
         cv2.rectangle(
-
             frame,
-
-            (x1,y1),
-
-            (x2,y2),
-
-            (0,255,0),
-
+            (x1, y1),
+            (x2, y2),
+            (0, 255, 0),
             2
-
         )
-
-
 
         cv2.putText(
-
             frame,
-
             "Person",
-
-            (x1,y1-10),
-
+            (x1, y1 - 10),
             cv2.FONT_HERSHEY_SIMPLEX,
-
             0.6,
-
-            (0,255,0),
-
+            (0, 255, 0),
             2
-
         )
-
-
-
-
-
-    # -----------------------------------------
-    # Person Tracking
-    # -----------------------------------------
-    #
-    # Assigns unique IDs to detected persons.
-    #
-    # -----------------------------------------
-
+    # Tracking
+    
 
     tracks = tracker.update(
-
         detections
-
     )
 
-
-
-
-
-    # Store movement history
-
+    # Save trajectories
     trajectory_logger.update(
-
         tracks
-
     )
 
-
-
-
-
-    # Display tracking IDs
+    # Draw IDs
 
     for track in tracks:
 
-
-
-        cx,cy = track["center"]
-
-
+        cx, cy = track["center"]
 
         cv2.putText(
-
             frame,
-
             f"ID:{track['id']}",
-
-            (cx,cy),
-
+            (cx, cy),
             cv2.FONT_HERSHEY_SIMPLEX,
-
             0.6,
-
-            (255,0,0),
-
+            (255, 0, 0),
             2
-
         )
 
-
-
-
-
-    # -----------------------------------------
+    # -----------------------------
     # Behavior Analysis
-    # -----------------------------------------
-    #
-    # Detects suspicious activities:
-    #
-    #   - Loitering
-    #   - Following
-    #   - Aggressive movement
-    #
-    # -----------------------------------------
-
+    # -----------------------------
 
     events = behavior.analyze(
-
         tracks,
-
         detections
-
     )
 
-
-
-
-
-    # -----------------------------------------
-    # Risk Assessment
-    # -----------------------------------------
-
+    # -----------------------------
+    # Risk Scoring
+    # -----------------------------
 
     score = risk_engine.calculate(
-
         events
-
     )
-
-
 
     level = classifier.classify(
-
         score
-
     )
 
-
-
-
-
-    # -----------------------------------------
-    # Store Events
-    # -----------------------------------------
-
+    # -----------------------------
+    # Event Logging
+    # -----------------------------
 
     logger.save(
-
         events,
-
         score,
-
         level
-
     )
 
-
-
-
-
-    # -----------------------------------------
-    # Generate Incident Report
-    # -----------------------------------------
-
+    # -----------------------------
+    # Generate Report
+    # -----------------------------
 
     report = reporter.generate(
-
         events,
-
         score,
-
         level
-
     )
-
-
-
 
     if report != last_report:
 
-
         print("\n")
-
         print(report)
-
 
         last_report = report
 
-
-
-
-
-    # -----------------------------------------
-    # Display Risk Information
-    # -----------------------------------------
-
+    # -----------------------------
+    # Display Risk Info
+    # -----------------------------
 
     cv2.putText(
-
         frame,
-
         f"Risk: {score}",
-
-        (20,30),
-
+        (20, 30),
         cv2.FONT_HERSHEY_SIMPLEX,
-
         0.8,
-
-        (0,0,255),
-
+        (0, 0, 255),
         2
-
     )
-
-
 
     cv2.putText(
-
         frame,
-
         f"Level: {level}",
-
-        (20,65),
-
+        (20, 65),
         cv2.FONT_HERSHEY_SIMPLEX,
-
         0.8,
-
-        (0,0,255),
-
+        (0, 0, 255),
         2
-
     )
 
-
-
-
-
-    # -----------------------------------------
-    # Display Detected Events
-    # -----------------------------------------
-
+    # -----------------------------
+    # Display Events
+    # -----------------------------
 
     y = 100
 
-
-
     for event in events[:5]:
 
-
         cv2.putText(
-
             frame,
-
             event["type"],
-
-            (20,y),
-
+            (20, y),
             cv2.FONT_HERSHEY_SIMPLEX,
-
             0.6,
-
-            (0,255,255),
-
+            (0, 255, 255),
             2
-
         )
-
 
         y += 30
 
-
-
-
-
-    # -----------------------------------------
-    # Trigger Alert
-    # -----------------------------------------
-
+   
+    # Alerts
+  
 
     if score >= 70:
 
-
         alerter.send(
-
             frame,
-
             report
-
         )
 
 
-
-
-
-    # Display live surveillance window
-
+    # Show Window
+   
 
     cv2.imshow(
-
         "Community Safety AI",
-
         frame
-
     )
-
-
-
-
 
     key = cv2.waitKey(1)
 
-
-
     if key & 0xFF == ord("q"):
-
 
         break
 
-
-
-
-
-# =================================================
-# Shutdown Procedure
-# =================================================
-
-
-
-# Save collected movement paths
+# Save Trajectories
 
 trajectory_logger.save()
 
-
-
-print(
-
-    "Trajectories saved."
-
-)
-
-
-
-# Release camera
+print("Trajectories saved.")
 
 camera.release()
-
-
-
-# Close OpenCV windows
 
 cv2.destroyAllWindows()
